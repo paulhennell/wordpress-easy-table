@@ -71,7 +71,7 @@ function __construct(){
 	add_action('wp_enqueue_scripts', array(&$this,'easy_table_script'));
 	add_action('wp_enqueue_scripts', array(&$this,'easy_table_style'));
 	add_action('admin_menu', 		 array(&$this,'easy_table_add_page'));
-	add_action('contextual_help', 	 array(&$this,'easy_table_help'));
+//	add_action('contextual_help', 	 array(&$this,'easy_table_help'));
 
 	include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 	include_once( dirname(__FILE__) . '/inc/compatibility.php' ); /* since 1.5.2 */
