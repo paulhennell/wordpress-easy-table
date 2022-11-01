@@ -1,15 +1,15 @@
 <?php
 /*
 Plugin Name: Easy Table
-Plugin URI: http://takien.com/
+Plugin URI: https://github.com/paulhennell/wordpress-easy-table
 Description: Create table in post, page, or widget in easy way.
-Author: Takien
-Version: 1.8
-Author URI: http://takien.com/
+Author: Paul Hennell, Takien
+Version: 1.9
+Author URI: https://github.com/paulhennell/wordpress-easy-table
+GitHub Plugin URI: https://github.com/paulhennell/wordpress-easy-table
 */
 
-/*  Copyright 2013 takien.com
-
+/*
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or

@@ -1,6 +1,5 @@
 === Easy Table ===
-Contributors: takien
-Donate link: http://takien.com/donate
+Contributors: Paul Hennell & Takien
 Tags: table,csv,csv-to-table,post,excel,csv file,widget,tablesorter
 Requires at least: 4.0
 Tested up to: 4.9.8
