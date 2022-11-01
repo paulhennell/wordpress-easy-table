@@ -949,7 +949,7 @@ settings_fields('easy_table_option_field');
 			'name'			=> 'easy_table_plugin_option[enclosure]',
 			'label'			=> __('Enclosure','easy-table'),
 			'type'			=> 'text',
-			'value'			=> htmlentities($this->option('enclosure')),
+			'value'			=> $this->option('enclosure'),
 			'description'	=> __('CSV enclosure (default is double quote)','easy-table'))
 		,Array(
 			'name'			=> 'easy_table_plugin_option[escape]',
