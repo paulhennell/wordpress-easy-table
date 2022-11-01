@@ -1,21 +1,7 @@
-=== Easy Table ===
-Contributors: Paul Hennell & Takien
-Tags: table,csv,csv-to-table,post,excel,csv file,widget,tablesorter
-Requires at least: 4.0
-Tested up to: 4.9.8
-Stable tag: 1.8
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
+### Easy Table is WordPress plugin to create a table in post, page, or widget in easy way using CSV format and table short tags. This version is an updated 'drop in' replacement for the original Easy Table by Takien, edited to work on php8.0.
 
-Easy Table is WordPress plugin to create table in post, page, or widget in easy way using CSV format. This can also display table from CSV file.
 
-== Description ==
-
-Easy Table is a WordPress plugin that allow you to insert table in easy way. Why it's easy? Because you don't need to write any complicated HTML syntax. Note that this plugin is not a graphical user interface table generator, so you can simply type your table data directly in your post while you writing. No need to switch to another window nor click any toolbar button.
-
-Easy Table using standard CSV format to generate table data, it's easiest way to build a table.
-
-= Some Features =
+## Features
 * Easy to use, no advanced skill required
 * Display table in post, page or even in widget
 * Read data from CSV file and display the data in table
@@ -23,130 +9,135 @@ Easy Table using standard CSV format to generate table data, it's easiest way to
 * Fancy table design (using Twitter CSS bootstrap)
 * WYSIWYG safe, I mean you can switch HTML/View tab in WordPress editor without breaking the table data.
 
-= Known bugs and limitation =
+## Known bugs and limitation
 * Enclosure will not work on first cell of a row
 * Chinese characters (and others?) usually stripped down on first cell of a row
 * Unable to create nested table
 
-= Example usage =
+## Installation
 
-* Basic table
-`[table]
-Year,Make,Model,Length
-1997,Ford,E350,2.34
-2000,Mercury,Cougar,2.38
-[/table]`
+You can download a zip from github and  upload using WordPress plugin uploader or upload manually uncompressed plugin file using FTP.
 
-* Table with additional parameter
-`[table tablesorter="1" id="someid"]
-Year,Make,Model,Length
-1997,Ford,E350,2.34
-2000,Mercury,Cougar,2.38
-[/table]`
 
-* Table with specific width
-`[table width="500px"]
-Year,Make,Model,Length
-1997,Ford,E350,2.34
-2000,Mercury,Cougar,2.38
-[/table]`
+## Example usage
+
+### Basic table
+  `[table]
+  Year,Make,Model,Length
+  1997,Ford,E350,2.34
+  2000,Mercury,Cougar,2.38
+  [/table]`
+
+### Table with additional parameter
+  `[table tablesorter="1" id="someid"]
+  Year,Make,Model,Length
+  1997,Ford,E350,2.34
+  2000,Mercury,Cougar,2.38
+  [/table]`
+
+### Table with specific width
+  `[table width="500px"]
+  Year,Make,Model,Length
+  1997,Ford,E350,2.34
+  2000,Mercury,Cougar,2.38
+  [/table]`
 
 Valid width value : auto, any number followed by % or px.
 If width not set, it will use default width value ( can be changed via Plugin option )
 
-* Table with colspan and other attribute in some cells
-`[table]
-no[attr style="width:20px"],head1,head2,head3
-1,row1col1,row1col2,row1col3[attr class="someclass"]
-2,row2col1,row2col2,row2col3
-3,row3col1[attr colspan="2"],row3col3
-4,row4col1,row4col2,row4col3
-[/table]`
+### Table with colspan and other attribute in some cells
+  `[table]
+  no[attr style="width:20px"],head1,head2,head3
+  1,row1col1,row1col2,row1col3[attr class="someclass"]
+  2,row2col1,row2col2,row2col3
+  3,row3col1[attr colspan="2"],row3col3
+  4,row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with initial sort order using table parameter, sort by first column descending
-`[table sort="desc"]
-no,head1,head2,head3
-1,row1col1,row1col2,row1col3
-2,row2col1,row2col2,row2col3
-3,row3col1,row3col2,row3col3
-4,row4col1,row4col2,row4col3
-[/table]`
+### Table with initial sort order using table parameter, sort by first column descending
+  `[table sort="desc"]
+  no,head1,head2,head3
+  1,row1col1,row1col2,row1col3
+  2,row2col1,row2col2,row2col3
+  3,row3col1,row3col2,row3col3
+  4,row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with initial sort order using table parameter, sort by first column descending, and second column ascending
-`[table sort="desc,asc"]
-no,head1,head2,head3
-1,row1col1,row1col2,row1col3
-2,row2col1,row2col2,row2col3
-3,row3col1,row3col2,row3col3
-4,row4col1,row4col2,row4col3
-[/table]`
+### Table with initial sort order using table parameter, sort by first column descending, and second column ascending
+  `[table sort="desc,asc"]
+  no,head1,head2,head3
+  1,row1col1,row1col2,row1col3
+  2,row2col1,row2col2,row2col3
+  3,row3col1,row3col2,row3col3
+  4,row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with initial sort order using cell attr, sort by second column descending
-`[table]
-no,head1[attr sort="desc"],head2,head3
-1,row1col1,row1col2,row1col3
-2,row2col1,row2col2,row2col3
-3,row3col1,row3col2,row3col3
-4,row4col1,row4col2,row4col3
-[/table]`
+### Table with initial sort order using cell attr, sort by second column descending
+  `[table]
+  no,head1[attr sort="desc"],head2,head3
+  1,row1col1,row1col2,row1col3
+  2,row2col1,row2col2,row2col3
+  3,row3col1,row3col2,row3col3
+  4,row4col1,row4col2,row4col3
+  [/table]`
 
-* Disable sort for third column using cell attr
-`[table]
-no,head1,head2[attr sort="false"],head3
-1,row1col1,row1col2,row1col3
-2,row2col1,row2col2,row2col3
-3,row3col1,row3col2,row3col3
-4,row4col1,row4col2,row4col3
-[/table]`
+### Disable sort for third column using cell attr
+  `[table]
+  no,head1,head2[attr sort="false"],head3
+  1,row1col1,row1col2,row1col3
+  2,row2col1,row2col2,row2col3
+  3,row3col1,row3col2,row3col3
+  4,row4col1,row4col2,row4col3
+  [/table]`
 
-* Disable sort for third column using table parameter
-`[table sort=",,false"]
-no,head1,head2,head3
-1,row1col1,row1col2,row1col3
-2,row2col1,row2col2,row2col3
-3,row3col1,row3col2,row3col3
-4,row4col1,row4col2,row4col3
-[/table]`
+### Disable sort for third column using table parameter
+  `[table sort=",,false"]
+  no,head1,head2,head3
+  1,row1col1,row1col2,row1col3
+  2,row2col1,row2col2,row2col3
+  3,row3col1,row3col2,row3col3
+  4,row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with auto index, start from number 1 (since 0.9)
-`[table ai="1"]
-head1,head2,head3
-row1col1,row1col2,row1col3
-row2col1,row2col2,row2col3
-row3col1,row3col2,row3col3
-row4col1,row4col2,row4col3
-[/table]`
+### Table with auto index, start from number 1 (since 0.9)
+  `[table ai="1"]
+  head1,head2,head3
+  row1col1,row1col2,row1col3
+  row2col1,row2col2,row2col3
+  row3col1,row3col2,row3col3
+  row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with auto index, start from number 2 (since 0.9)
-`[table ai="2"]
-head1,head2,head3
-row1col1,row1col2,row1col3
-row2col1,row2col2,row2col3
-row3col1,row3col2,row3col3
-row4col1,row4col2,row4col3
-[/table]`
+### Table with auto index, start from number 2 (since 0.9)
+  `[table ai="2"]
+  head1,head2,head3
+  row1col1,row1col2,row1col3
+  row2col1,row2col2,row2col3
+  row3col1,row3col2,row3col3
+  row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with auto index, start from number 1, and titled No. (since 0.9)
-`[table ai="1/No."]
-head1,head2,head3
-row1col1,row1col2,row1col3
-row2col1,row2col2,row2col3
-row3col1,row3col2,row3col3
-row4col1,row4col2,row4col3
-[/table]`
+### Table with auto index, start from number 1, and titled No. (since 0.9)
+  `[table ai="1/No."]
+  head1,head2,head3
+  row1col1,row1col2,row1col3
+  row2col1,row2col2,row2col3
+  row3col1,row3col2,row3col3
+  row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with auto index, start from number 1, titled No., and column width 50px (since 0.9)
-`[table ai="1/No./50"]
-head1,head2,head3
-row1col1,row1col2,row1col3
-row2col1,row2col2,row2col3
-row3col1,row3col2,row3col3
-row4col1,row4col2,row4col3
-[/table]`
+### Table with auto index, start from number 1, titled No., and column width 50px (since 0.9)
+  `[table ai="1/No./50"]
+  head1,head2,head3
+  row1col1,row1col2,row1col3
+  row2col1,row2col2,row2col3
+  row3col1,row3col2,row3col3
+  row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with new line in a cell (since 0.9)
-any nl value would be replaced with new line while rendered.
-nl could be one character or more. Be wise to use character here, make sure it's not very common character that may used in your data.
+### Table with new line in a cell (since 0.9)
+  any nl value would be replaced with new line while rendered.
+  nl could be one character or more. Be wise to use character here, make sure it's not very common character that may used in your data.
 
 `[table nl="~~"]
 head1,head2,head3
@@ -162,8 +153,8 @@ row3col1,row3col2,row3col3
 row4col1,row4col2,row4col3
 [/table]`
 
-* Table with custom row terminator (since 1.0)
-Now you can use another character as new row, not only linebreak (\n or \n), eg. you want to use | as row terminator.
+### Table with custom row terminator (since 1.0)
+  Now you can use another character as new row, not only linebreak (\n or \n), eg. you want to use | as row terminator.
 
 `[table terminator="|"]
 head1,head2,head3|
@@ -183,69 +174,47 @@ row3col1,row3col2,row3col3|
 row4col1,row4col2,row4col3|
 [/table]`
 
-* Table with comma in cell using enclosure
-`[table]
-head1,head2,head3
-row1col1,row1col2,"this, should, in, one cell, because, enclosured, with, doublequote"
-row2col1,row2col2,row2col3
-row3col1,row3col2,row3col3
-row4col1,row4col2,row4col3
-[/table]`
+### Table with comma in cell using enclosure
+  `[table]
+  head1,head2,head3
+  row1col1,row1col2,"this, should, in, one cell, because, enclosured, with, doublequote"
+  row2col1,row2col2,row2col3
+  row3col1,row3col2,row3col3
+  row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with comma in cell using escape (since 1.3)
-`[table]
-head1,head2,head3
-row1col1,row1col2,this\, should\, in\, one cell\, because\, commas \,escaped \,with \,backslash
-row2col1,row2col2,row2col3
-row3col1,row3col2,row3col3
-row4col1,row4col2,row4col3
-[/table]`
+### Table with comma in cell using escape (since 1.3)
+  `[table]
+  head1,head2,head3
+  row1col1,row1col2,this\, should\, in\, one cell\, because\, commas \,escaped \,with \,backslash
+  row2col1,row2col2,row2col3
+  row3col1,row3col2,row3col3
+  row4col1,row4col2,row4col3
+  [/table]`
 
-* Table with no heading
-`[table th="0"]some data here[/table]`
+### Table with no heading
+  `[table th="0"]some data here[/table]`
 
-* Table with no heading
-`[table th="0"]some data here[/table]`
+### Table with no heading
+  `[table th="0"]some data here[/table]`
 
-* Table with footer/tfoot, by default tfoot automatically picked up from second row.
-`[table tf="1"]some data here[/table]`
+###  Table with footer/tfoot,
+by default tfoot automatically picked up from second row.
+  `[table tf="1"]some data here[/table]`
 
-* Table with picked up from last row.
-`[table tf="last"]some data here[/table]`
+### Table with picked up from last row.
+  `[table tf="last"]some data here[/table]`
 
-* Table from CSV file
-`[table file="example.com/blog/wp-content/uploads/pricelist.csv"][/table]`
+### Table from CSV file
+  `[table file="example.com/blog/wp-content/uploads/pricelist.csv"][/table]`
 
-[Look confusing? Please click here](http://takien.com/plugins/easy-table).
-Or check out our video tutorial here http://www.youtube.com/watch?v=Th0_qSleyDI
+Check out a video tutorial here http://www.youtube.com/watch?v=Th0_qSleyDI
 
-= Other notes =
+## Other notes
 * If read from file, the file URL must not contain space.
 
-== Installation ==
 
-There are many ways to install this plugin, e.g:
-
-1. Upload compressed (zip) plugin using WordPress plugin uploader.
-2. Directly install from WordPress.org directory
-3. Upload manually uncompressed plugin file using FTP.
-
-== Frequently Asked Questions ==
-
-[See official plugin support here](http://takien.com/plugins/easy-table).
-
-== Screenshots ==
-
-1. Various table in a post
-2. Easy Table options page
-3. It's easy to display your uploaded CSV file as HTML table.
-4. Easy Table in text widget
-
-== Upgrade Notice ==
-
-No
-
-== Changelog ==
+## Changelog
 
 = 1.9 =
 * Updated the code to avoid deprecated php and wordpress features.
