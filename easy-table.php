@@ -4,7 +4,7 @@ Plugin Name: Easy Table
 Plugin URI: http://takien.com/
 Description: Create table in post, page, or widget in easy way.
 Author: Takien
-Version: 1.1.1
+Version: 1.8
 Author URI: http://takien.com/
 */
 
@@ -19,9 +19,6 @@ Author URI: http://takien.com/
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
-    For a copy of the GNU General Public License, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 if(!defined('ABSPATH')) die();
@@ -42,6 +39,7 @@ var $settings = Array(
 	'class'         => '',
 	'caption'       => false,
 	'width'         => '100%',
+	'align'         => 'left',
 	'th'            => true,
 	'tf'            => false,
 	'border'        => 0,
@@ -58,80 +56,130 @@ var $settings = Array(
 	'nl'            => '~~',
 	'csvfile'       => false,
 	'terminator'    => '\n', /*row terminator, since 1.0*/
-	'limit'         => 0 /*max row to be included to table, 0 = unlimited, since 1.0*/
+	'limit'         => 0, /*max row to be included to table, 0 = unlimited, since 1.0*/
+	'fixlinebreak'  => false
 );
-
-
-function EasyTable(){
-	$this->__construct();
-}
 
 function __construct(){
 	$plugin = plugin_basename(__FILE__);
 	add_filter("plugin_action_links_$plugin",  array(&$this,'easy_table_settings_link' ));
-	
+
 	load_plugin_textdomain('easy-table', false, basename( dirname( __FILE__ ) ) . '/languages' );
-	
+
 	add_action('admin_init', 		 array(&$this,'easy_table_register_setting'));
 	add_action('admin_head',		 array(&$this,'easy_table_admin_script'));
 	add_action('wp_enqueue_scripts', array(&$this,'easy_table_script'));
 	add_action('wp_enqueue_scripts', array(&$this,'easy_table_style'));
 	add_action('admin_menu', 		 array(&$this,'easy_table_add_page'));
 	add_action('contextual_help', 	 array(&$this,'easy_table_help'));
-	add_shortcode($this->option('shortcodetag'),  array(&$this,'easy_table_short_code'));
-	add_shortcode($this->option('attrtag'),  array(&$this,'easy_table_short_code_attr'));
+
+	include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	include_once( dirname(__FILE__) . '/inc/compatibility.php' ); /* since 1.5.2 */
+
+	$conflict = false;
+
+	if ( shortcode_exists( $this->option('shortcodetag') ) ) {
+		add_action('admin_notices',       array(&$this,'easy_table_shortcode_check_notice'));
+		$conflict = true;
+	}
+	if (is_plugin_active('tablepress/tablepress.php') AND ('table' == strtolower($this->option('shortcodetag')) ) ) {
+		add_action('admin_notices',       array(&$this,'easy_table_shortcode_check_notice_tablepress'));
+		$conflict = true;
+	}
+	if ( !$conflict ) {
+		add_shortcode($this->option('shortcodetag'),  array(&$this,'easy_table_short_code'));
+	}
+
+	if ( shortcode_exists( $this->option('attrtag') ) ) {
+		add_action('admin_notices',       array(&$this,'easy_table_attr_shortcode_check_notice'));
+	}
+	else {
+		add_shortcode($this->option('attrtag'),  array(&$this,'easy_table_short_code_attr'));
+	}
+
 	if($this->option('tablewidget')){
 		add_filter('widget_text', 		'do_shortcode');
 	}
+	$table_shortcodetag_already_exists = false;
 }
 
 private function easy_table_base($return){
 	$easy_table_base = Array(
 				'name' 			=> 'Easy Table',
-				'version' 		=> '1.1.1',
+				'version' 		=> '1.8',
 				'plugin-domain'	=> 'easy-table'
 	);
 	return $easy_table_base[$return];
 }
 
+
+function easy_table_shortcode_check_notice() {
+	$shortcode = $this->option('shortcodetag');
+	?>
+	<div class="error">
+		<p><strong>Easy Table</strong>: <?php printf(__('It seems that %1$s shortcode already used by another plugin and potentially cause problem with %2$s. Please change %3$s into another term other than %4$s.  <a href="%5$s">Click here to fix it.</a>','easy-table'), '<code>['.$shortcode.']</code>','Easy Table','<em>Easy Table short code tag</em>','<code>'.$shortcode.'</code>','options-general.php?page=easy-table');?></p>
+	</div>
+	<?php
+}
+function easy_table_shortcode_check_notice_tablepress() {
+	$shortcode = 'table';
+	?>
+	<div class="error">
+		<p><strong>Easy Table</strong>: <?php printf(__('It seems that %1$s shortcode already used by another plugin and potentially cause problem with %2$s. Please change %3$s into another term other than %4$s.  <a href="%5$s">Click here to fix it.</a>','easy-table'), '<code>['.$shortcode.']</code>','Easy Table','<em>Easy Table short code tag</em>','<code>'.$shortcode.'</code>','options-general.php?page=easy-table');?></p>
+	</div>
+	<?php
+}
+function easy_table_attr_shortcode_check_notice() {
+	$shortcode = $this->option('attrtag');
+	?>
+	<div class="error">
+		<p><strong>Easy Table</strong>: <?php printf(__('It seems that %1$s shortcode already used by another plugin and potentially cause problem with %2$s. Please change %3$s into another term other than %4$s.  <a href="%5$s">Click here to fix it.</a>','easy-table'), '<code>['.$shortcode.']</code>','Easy Table','<em>Easy Table cell attribute tag</em>','<code>'.$shortcode.'</code>','options-general.php?page=easy-table');?></p>
+	</div>
+	<?php
+}
+
 function easy_table_short_code($atts, $content="") {
 	$shortcode_atts = shortcode_atts(array(
-		'class' 		=> $this->option('class'),
-		'caption' 		=> $this->option('caption'),
-		'width' 		=> $this->option('width'),
-		'th'	  		=> $this->option('th'),
-		'tf'	  		=> $this->option('tf'),
-		'border'		=> $this->option('border'),
-		'id'	  		=> $this->option('id'),
-		'theme'			=> $this->option('theme'),
-		'tablesorter'	=> $this->option('tablesorter'),
-		'delimiter'		=> $this->option('delimiter'),
-		'enclosure' 	=> $this->option('enclosure'),
-		'escape' 		=> $this->option('escape'),
-		'file'			=> $this->option('file'),
-		'trim'			=> $this->option('trim'), 
+		'class'         => $this->option('class'),
+		'caption'       => $this->option('caption'),
+		'width'         => $this->option('width'),
+		'th'            => $this->option('th'),
+		'tf'            => $this->option('tf'),
+		'border'        => $this->option('border'),
+		'id'            => $this->option('id'),
+		'theme'         => $this->option('theme'),
+		'tablesorter'   => $this->option('tablesorter'),
+		'delimiter'     => $this->option('delimiter'),
+		'enclosure'     => $this->option('enclosure'),
+		'escape'        => $this->option('escape'),
+		'file'          => $this->option('file'),
+		'trim'          => $this->option('trim'),
 		'sort'          => '',
 		'nl'            => $this->option('nl'),
 		'ai'            => false,
-		'terminator'	=> $this->option('terminator'),
-		'limit'	        => $this->option('limit'),
-		'style'	        => '', /*table inline style, since 1.0*/
+		'terminator'    => $this->option('terminator'),
+		'limit'         => $this->option('limit'),
+		'align'         => $this->option('align'),
+		'style'         => '', /*table inline style, since 1.0*/
 		'colalign'      => '', /*column align, ex: [table colalign="left|right|center"], @since 1.0*/
 		'colwidth'      => '', /*column width, ex: [table colwidth="100|200|300"], @since 1.0*/
+		'fixlinebreak'  => $this->option('fixlinebreak'), /* fix linebreak on cell if terminator is not \n or \r @since 1.1.4 */
+		'exclude_row'   => '',
+		'exclude_col'   => '',
 	 ), $atts);
 	/**
 	* because clean_pre is deprecated since WordPress 3.4, then replace it manually
 	$content 		= clean_pre($content);*/
-	
+
 	$content = str_replace(array('<br />', '<br/>', '<br>'), array('', '', ''), $content);
 	$content = str_replace('<p>', "\n", $content);
 	$content = str_replace('</p>', '', $content);
-	
+
 	$content 		= str_replace('&nbsp;','',$content);
 	$char_codes 	= array( '&#8216;', '&#8217;', '&#8220;', '&#8221;', '&#8242;', '&#8243;' );
 	$replacements 	= array( "'", "'", '"', '"', "'", '"' );
 	$content = str_replace( $char_codes, $replacements, $content );
-		
+
 	return $this->csv_to_table($content,$shortcode_atts);
 }
 
@@ -151,13 +199,23 @@ function easy_table_short_code_attr($atts){
 */
 private function csv_to_table($data,$args){
 	extract($args);
+
+	/** check param value if it is expected to be boolean
+	* @since: 1.6
+	**/
+	$th   = filter_var($th, FILTER_VALIDATE_BOOLEAN);
+	$trim = filter_var($trim, FILTER_VALIDATE_BOOLEAN);
+	if($tf !== 'last') {
+		$tf   = filter_var($tf, FILTER_VALIDATE_BOOLEAN);
+	}
+
 	if( $this->option('csvfile') AND $file ){
 		/*$data = @file_get_contents($file);*/
 		/** use wp_remote_get
 		* @since 0.8
 		*/
 		$data = '';
-		$response = wp_remote_get($file);
+		$response = wp_remote_get( $file, array('sslverify'=>false) );
 		/**
 			notify if error reading file.
 			@since 0.9
@@ -175,7 +233,7 @@ private function csv_to_table($data,$args){
 		@since 0.9
 		*/
 		$data = preg_replace('/'.preg_quote($nl).'([\s\r\n\t]+)?/i',$nl,$data);
-	
+
 		/*
 		Fix encoding?
 		@since: 1.0 beta
@@ -183,21 +241,39 @@ private function csv_to_table($data,$args){
 		require_once (dirname(__FILE__).'/inc/Encoding.php');
 		//$data = ForceEncode::fixUTF8($data);
 		$data = ForceEncode::toUTF8($data);
-		
+
 		/*
 		convert csv to array.
 		*/
-		$data 	= $this->csv_to_array(trim($data), $delimiter, $enclosure, $escape,$terminator);
+		$data 	= $this->csv_to_array(trim($data), $delimiter, $enclosure, $escape, $terminator, $limit);
 	}
-	
+
 	if(empty($data)) return false;
-	
+
+	/** exclude row or col
+	* @since: 1.6
+	**/
+
+	 if( $exclude_row ) {
+		$exclude_row = explode(',',$exclude_row);
+			foreach( $exclude_row as $x_row ) {
+				if(isset($data[$x_row-1])) {
+					unset($data[$x_row-1]);
+				}
+			}
+	}
+
+	if( $exclude_col ) {
+		$exclude_col = explode(',',$exclude_col);
+	}
+
+
 	$max_cols 	= count(max($data));
 
 	$r=0;
-	
+
 	/**
-	* initialize inline sort, 
+	* initialize inline sort,
 	* extract header sort if any, and equalize with max column number
 	* @since 0.8
 	*/
@@ -206,15 +282,22 @@ private function csv_to_table($data,$args){
 		$header_sort = explode(',',$sort);
 		$header_sort = array_pad($header_sort,$max_cols,NULL);
 	}
-	
+
 	/**
 	* tfoot position
 	* @since 0.4
 	*/
 	$tfpos = ($tf == 'last') ? count($data) : ($th?2:1);
 
-	$width = (stripos($width,'%') === false) ? (int)$width.'px' : (int)$width.'%';
-	
+	/**
+	* add auto width
+	* @since 1.1.3
+	*/
+
+	if ( 'auto' !== $width ) {
+ 		$width = (stripos($width,'%') === false) ? (int)$width.'px' : (int)$width.'%';
+ 	}
+
 	/*colalign & colwidth
 	@since 1.0
 	*/
@@ -224,26 +307,51 @@ private function csv_to_table($data,$args){
 	if($colwidth) {
 	    $c_width = explode('|',$colwidth);
 	}
-	
-	$margin_left = $margin_right = 0;
-	
-	if( 'center' == $align ) {
-		$margin_left = $margin_right = 'auto';
-	}
-	
-	$output = '<table '.($id ? 'id="'.$id.'"':'');
-	$output .= 'style="width:'.$width.';margin:'.$margin_top.' '.$margin_right.' '.$margin_bottom.' '.$margin_left.';'.$style.'"';
+
+	/* added back $align, with new way of implementation,
+	* @since 1.4
+	*/
+	$style = rtrim($style, ';');
+	switch ($align) :
+		case 'center':
+			$alignstyle = '; margin-left:auto;margin-right:auto';
+		break;
+		case 'right':
+			$alignstyle = '; margin-left:auto;margin-right:0';
+		break;
+		default:
+			$alignstyle = '';
+		break;
+	endswitch;
+
+	$style = $style.$alignstyle;
+
+	/* wrap with .table-responsive div, since 1.5 */
+	$output  = '<div class="table-responsive">';
+	$output .= '<table '.($id ? 'id="'.$id.'"':'');
+
+	//$output .= ' width="'.$width.'" '; width attr not used, use style instead (see below) - since 1.1.3
+	$output .= ' style="'.((stripos($style,'width') === false) ? ('width:'.$width.';') : '').' '.ltrim($style,';').'" ';
 	$output .= ' class="easy-table easy-table-'.$theme.' '.($tablesorter ? 'tablesorter __sortlist__ ':'').$class.'" '.
 	(($border !=='0') ? 'border="'.$border.'"' : '').
 	'>'."\n";
-	
+
 	$output .= $caption ? '<caption>'.$caption.'</caption>'."\n" : '';
 	$output .= $th ? '<thead>' : (($tf !== 'last') ? '' : '<tbody>');
 	$output .= (!$th AND !$tf) ? '<tbody>':'';
-	
+
 	foreach($data as $k=>$cols){ $r++;
 		//$cols = array_pad($cols,$max_cols,'');
-		
+
+		// exclude cols, @since: 1.6
+		if(is_array($exclude_col)) {
+			foreach( $exclude_col as $x_col ) {
+				if(isset($cols[$x_col-1])) {
+					unset($cols[$x_col-1]);
+				}
+			}
+		}
+
 		$output .= (($r==$tfpos) AND $tf) ? (($tf=='last')?'</tbody>':'').'<tfoot>': '';
 		$output .= "\r\n".'<tr>';
 
@@ -262,7 +370,7 @@ head  = head text, default is No.
 width = column width, in pixel. Default is 20px
 ai head, text to shown in the table head row, default is No.
 
-*/		
+*/
 		$index       = explode('/',$ai);
 		$indexnum    = ((int)$index[0])+$r;
 		$indexnum    = $th ? $indexnum-2 : $indexnum-1;
@@ -270,28 +378,29 @@ ai head, text to shown in the table head row, default is No.
 		$indexhead   = isset($index[1]) ? $index[1] : 'No.';
 		$indexwidth  = isset($index[2]) ? (int)$index[2] : 30;
 		$output .= ($ai AND ($thtd == 'td'))  ? '<'.$thtd.' style="width:'.$indexwidth.'px">'.$indexnum."</$thtd>" : ($ai ? "<$thtd>".$indexhead."</$thtd>" : '');
-		
+
 		foreach($cols as $c=>$cell){
 			/**
 			* Add attribute for each cell
 			* @since 0.5
 			*/
-			preg_match('/\['.$this->option('attrtag').' ([^\\]\\/]*(?:\\/(?!\\])[^\\]\\/]*)*?)/',$cell,$matchattr);
+			//preg_match('/\['.$this->option('attrtag').' ([^\\]\\/]*(?:\\/(?!\\])[^\\]\\/]*)*?)/',$cell,$matchattr);
+			preg_match('/\['.$this->option('attrtag').' ([^\\]]*)/',$cell,$matchattr);
 			$attr = isset($matchattr[1]) ? $matchattr[1] : '';
 				/**
 				* extract $attr value
 				* @since 0.8
-				* this is for inline sorting option, 
+				* this is for inline sorting option,
 				* eg [attr sort="desc"],[attr sort="asc"] or [attr sort="none"]
 				* only affect if it's TH and $tablesorter enabled
 				* extract sort value and insert appropriate class value.
-				*/ 
-				
+				*/
+
 				if( ('th' == $thtd) AND $tablesorter ) {
 					$attrs = $attr ? shortcode_parse_atts($attr) : Array();
 					$attrs['sort']  =  isset($attrs['sort']) ? $attrs['sort'] : $header_sort[$c];
 					$attrs['class'] =  isset($attrs['class']) ? $attrs['class'] : '';
-					
+
 					$inline_sort[$c] = $attrs['sort'];
 
 					$attr = '';
@@ -318,11 +427,15 @@ ai head, text to shown in the table head row, default is No.
 			 @since 1.0
 			 */
 			$cell  = $trim ? trim(str_replace('&nbsp;','',$cell)) : $cell;
-			
+
 			/*nl2br? only if terminator is not \n or \r*/
-			if(( '\n' !== $terminator )  OR ( '\r' !== $terminator )) {
-				$cell = nl2br($cell);
-			}	
+			/* optionally, if $fixlinebreak is set. @since 1.1.4 */
+
+			if ( $fixlinebreak ) {
+				if(( '\n' !== $terminator )  OR ( '\r' !== $terminator )) {
+					$cell = nl2br($cell);
+				}
+			}
 			/*colalign
 			 @since 1.0
 			 */
@@ -339,7 +452,7 @@ ai head, text to shown in the table head row, default is No.
 			 */
 			if (isset($c_width[$c]) AND (stripos($attr,'width') === false) AND ($r == 1)) {
 				$c_width[$c] = (stripos($c_width[$c],'%') === false) ? (int)$c_width[$c].'px' : (int)$c_width[$c].'%';
-				
+
 				if(stripos($attr,'style') === false) {
 				   $attr = $attr. ' style="width:'.$c_width[$c].'" ';
 				}
@@ -347,29 +460,29 @@ ai head, text to shown in the table head row, default is No.
 					$attr = preg_replace('/style(\s+)?=(\s+)?("|\')(\s+)?/i','style=${3}width:'.$c_width[$c].';',$attr);
 				}
 			}
-			
+
 			$output .= "<$thtd $attr>".do_shortcode($cell)."</$thtd>\n";
 		}
-	
+
 		$output .= '</tr>'."\n";
 		$output .= (($r==1) AND $th) ? '</thead>'."\n".'<tbody>' : '';
 		$output .= (($r==$tfpos) AND $tf) ? '</tfoot>'.((($tf==1) AND !$th) ? '<tbody>':''): '';
-		
+
 	}
-	$output .= (($tf!=='last')?'</tbody>':'').'</table>';
-	
-	/** 
+	$output .= (($tf!=='last')?'</tbody>':'').'</table></div>';
+
+	/**
 	* Build sortlist metadata and append it to the table class
 	* @since 0.8
 	* This intended to $tablesorter,
 	* so don't bother if $tablesorter is false/disabled
 	*/
 
-	
+
 	if( $tablesorter ) {
 		$sortlist = '';
 		$all_sort = array_replace($header_sort,$inline_sort);
-		
+
 		if(implode('',$all_sort)) {
 			$sortlist = '{sortlist: [';
 			foreach($all_sort as $k=>$v){
@@ -395,7 +508,7 @@ $terminator = ($terminator == '\n') ? "\n" : $terminator;
 $terminator = ($terminator == '\r') ? "\r" : $terminator;
 $terminator = ($terminator == '\t') ? "\t" : $terminator;
 
-$rows = easy_table_str_getcsv($csv, $terminator,$enclosure,$escape); 
+$rows = easy_table_str_getcsv($csv, $terminator,$enclosure,$escape);
 $rows = array_diff($rows,Array(''));
 /*
 * limit how many rows will be included?
@@ -403,7 +516,7 @@ $rows = array_diff($rows,Array(''));
 * @since 1.0
 */
 if($limit > 0) {
-	$rows = array_slice($rows, 0, $limit); 
+	$rows = array_slice($rows, 0, $limit);
 }
 
 foreach($rows as &$row) {
@@ -440,12 +553,12 @@ function themes(){
 	if( ( 'easy-table' == $_GET['page']) AND isset($_GET['settings-updated']) ) {
 		delete_transient('easy_table_themes');
 	}
-	
+
 	if(!function_exists('scandir')){
 		return Array('default');
 	}
 	if ( false === ( $themes = get_transient( 'easy_table_themes' ) )) {
-	
+
 	$dir = plugin_dir_path(__FILE__).'themes/';
 	$dirs = scandir($dir);
 	foreach($dirs as $d){
@@ -457,33 +570,34 @@ function themes(){
 	}
 	return $themes;
 }
-function theme_content() {
-	if(!isset($_GET['edit'])) {
-		return false;
-	}
-		$theme = $_GET['edit'];
-		$dir   = plugin_dir_path(__FILE__).'themes/';
-		if(is_writable($dir.$theme.'/style.css')) {
-			return file_get_contents($dir.$theme.'/style.css');
-		}
-}
+
 /**
 * Register plugin setting
+* @since: 1.7 add sanitize_callback
 */
 function easy_table_register_setting() {
-	register_setting('easy_table_option_field', 'easy_table_plugin_option');
+	$args = array('sanitize_callback'=> array(&$this,'easy_table_sanitize_callback'));
+	register_setting('easy_table_option_field', 'easy_table_plugin_option', $args);
 }
 
 /**
+* Add sanitize_callback to register_setting to filter the options value
+* @since: 1.7
+*/
+
+function easy_table_sanitize_callback ( $value ) {
+	return filter_var( $value,FILTER_CALLBACK, array("options"=>"strip_tags"));
+}
+/**
 * Render form
-* @param array 
-*/	
+* @param array
+*/
 function render_form($fields){
 	$output ='<table class="form-table">';
 	foreach($fields as $field){
 		$field['rowclass'] = isset($field['rowclass']) ? $field['rowclass'] : false;
 		$field['label'] = isset($field['label']) ? $field['label'] : '';
-		
+
 		if($field['type']=='text'){
 			$output .= '<tr '.($field['rowclass'] ? 'class="'.$field['rowclass'].'"': '').'><th><label for="'.$field['name'].'">'.$field['label'].'</label></th>';
 			$output .= '<td><input type="text" id="'.$field['name'].'" name="'.$field['name'].'" value="'.$field['value'].'" />';
@@ -519,12 +633,12 @@ function render_form($fields){
 
 /**
 * Register javascript
-*/	
+*/
 function easy_table_script() {
 	if(	is_single() AND in_array('is_single',$this->option('scriptloadin')) OR
-		is_page() AND in_array('is_page',$this->option('scriptloadin')) OR 
-		is_home() AND in_array('is_home',$this->option('scriptloadin')) OR 
-		is_archive() AND in_array('is_archive',$this->option('scriptloadin')) OR 
+		is_page() AND in_array('is_page',$this->option('scriptloadin')) OR
+		is_home() AND in_array('is_home',$this->option('scriptloadin')) OR
+		is_archive() AND in_array('is_archive',$this->option('scriptloadin')) OR
 		is_search() AND in_array('is_search',$this->option('scriptloadin'))
 		)
 	{
@@ -536,12 +650,12 @@ function easy_table_script() {
 
 /**
 * Register stylesheet
-*/	
+*/
 function easy_table_style() {
 	if(	is_single() AND in_array('is_single',$this->option('scriptloadin')) OR
-		is_page() AND in_array('is_page',$this->option('scriptloadin')) OR 
-		is_home() AND in_array('is_home',$this->option('scriptloadin')) OR 
-	    is_archive() AND in_array('is_archive',$this->option('scriptloadin')) OR 
+		is_page() AND in_array('is_page',$this->option('scriptloadin')) OR
+		is_home() AND in_array('is_home',$this->option('scriptloadin')) OR
+	    is_archive() AND in_array('is_archive',$this->option('scriptloadin')) OR
 	    is_search() AND in_array('is_search',$this->option('scriptloadin'))
 		)
 	{
@@ -553,7 +667,7 @@ function easy_table_style() {
 
 function easy_table_admin_script(){
 $page = isset($_GET['page']) ? $_GET['page'] : '';
-if($page == $this->easy_table_base('plugin-domain')) { 
+if($page == $this->easy_table_base('plugin-domain')) {
 if($this->option('tablesorter')) { ?>
 <script src="<?php echo plugins_url( 'js/easy-table-script.js' , __FILE__);?>"></script>
 <?php }
@@ -572,7 +686,7 @@ if($this->option('loadcss')) { ?>
 			maxwidth:300,
 			timeout:500,
 			template:'<div class="ttooltip-wrap"><div class="ttooltip-arrow ttooltip-arrow-border"></div><div class="ttooltip-arrow"></div><div class="ttooltip-inner"><h3 class="ttooltip-title"></h3><div class="ttooltip-content"><p></p></div><div class="ttooltip-footer"></div></div></div>'
-		}); 
+		});
 		$('.togglethis a').click(function(e){
 			var target = $(this).attr('data-target');
 			$(target).toggle();
@@ -593,11 +707,11 @@ function easy_table_settings_link($links) {
 	  $settings_link = '<a href="options-general.php?page='.$this->easy_table_base('plugin-domain').'">'.__('Settings','easy-table').'</a>';
 	  array_unshift($links, $settings_link);
 	  return $links;
-} 
+}
 
 /**
 * Contextual help
-*/	
+*/
 function easy_table_help($help) {
 	$page = isset($_GET['page']) ? $_GET['page'] : '';
 	if($page == $this->easy_table_base('plugin-domain')) {
@@ -612,14 +726,14 @@ function easy_table_help($help) {
 
 /**
 * Add plugin page
-*/	
+*/
 function easy_table_add_page() {
 	add_options_page($this->easy_table_base('name'), $this->easy_table_base('name'), 'administrator', $this->easy_table_base('plugin-domain'), array(&$this,'easy_table_page'));
 }
 
 /**
 * Plugin option page
-*/	
+*/
 function easy_table_page() { ?>
 <div class="wrap easy-table-wrap">
 <div class="icon32"><img src="<?php echo plugins_url('/images/icon-table.png', __FILE__);?>" /></div>
@@ -635,8 +749,8 @@ function easy_table_page() { ?>
 <?php if(!isset($_GET['gettab'])) : ?>
 <div class="left">
 <form method="post" action="options.php">
-<?php 
-wp_nonce_field('update-options'); 
+<?php
+wp_nonce_field('update-options');
 settings_fields('easy_table_option_field');
 
 ?>
@@ -711,12 +825,12 @@ settings_fields('easy_table_option_field');
 			'value'			=> 1,
 			'attr'			=> $this->option('scriptinfooter') ? 'checked="checked"' : ''
 		)
-		
+
 	);
 	echo $this->render_form($fields);
 
 	$fields = Array(
-		Array(	
+		Array(
 			'name'			=> 'easy_table_plugin_option[tablesorter]',
 			'label'			=> __('Use tablesorter?','easy-table'),
 			'type'			=> 'checkbox',
@@ -736,7 +850,7 @@ settings_fields('easy_table_option_field');
 			'type'			=> 'checkbox',
 			'value'			=> 1,
 			'description'	=> __('Check this to use CSS included in this plugin to styling table, you may unceck if you want to write your own style.','easy-table'),
-			'attr'			=> $this->option('loadcss') ? 'checked="checked"':'')	
+			'attr'			=> $this->option('loadcss') ? 'checked="checked"':'')
 		,Array(
 			'name'			=> 'easy_table_plugin_option[class]',
 			'label'			=> __('Table class','easy-table'),
@@ -755,8 +869,14 @@ settings_fields('easy_table_option_field');
 			'type'			=> 'text',
 			'description'	=> __('Table border (may be overriden by CSS)','easy-table'),
 			'value'			=> $this->option('border'))
+		,Array(
+			'name'			=>'easy_table_plugin_option[align]',
+			'label'			=> __('Table align','easy-table'),
+			'type'			=> 'text',
+			'description'	=> __('Table align (left, center, right)','easy-table'),
+			'value'			=> $this->option('align'))
 	);
-	?>	
+	?>
 
 	<h3><?php _e('Table options','easy-table');?></h3>
 	<?php
@@ -765,7 +885,7 @@ settings_fields('easy_table_option_field');
 	<h3><?php _e('Theme selector','easy-table');?></h3>
 	<?php
 	$fields = Array(
-		Array(	
+		Array(
 			'name'			=> 'easy_table_plugin_option[theme]',
 			'label'			=> __('Default theme','easy-table'),
 			'type'			=> 'select',
@@ -776,11 +896,11 @@ settings_fields('easy_table_option_field');
 	);
 		echo $this->render_form($fields);
 	?>
-	
+
 	<h3><?php _e('Data options','easy-table');?></h3>
 	<?php
 		$fields = Array(
-		Array(	
+		Array(
 			'name'			=> 'easy_table_plugin_option[limit]',
 			'label'			=> __('Row limit','easy-table'),
 			'type'			=> 'text',
@@ -788,7 +908,7 @@ settings_fields('easy_table_option_field');
 			'rowclass'		=> 'new',
 			'description'	=>__('Max row to convert to table, default 0 (unlimited)','easy-table')
 		),
-		Array(	
+		Array(
 			'name'			=> 'easy_table_plugin_option[trim]',
 			'label'			=> __('Trim cell data?','easy-table'),
 			'type'			=> 'checkbox',
@@ -800,7 +920,7 @@ settings_fields('easy_table_option_field');
 		);
 		echo $this->render_form($fields);
 	?>
-	
+
 	<h3><?php _e('Parser options','easy-table');?></h3>
 	<p><em><?php _e('Do not change this unless you know what you\'re doing','easy-table');?></em>
 	</p>
@@ -831,12 +951,19 @@ settings_fields('easy_table_option_field');
 			'type'			=> 'text',
 			'value'			=> htmlentities($this->option('enclosure')),
 			'description'	=> __('CSV enclosure (default is double quote)','easy-table'))
-		,Array(	
+		,Array(
 			'name'			=> 'easy_table_plugin_option[escape]',
 			'label'			=> __('Escape','easy-table'),
 			'type'			=> 'text',
 			'value'			=> $this->option('escape'),
 			'description'	=>__('CSV escape (default is backslash)','easy-table'))
+		,Array(
+			'name'			=> 'easy_table_plugin_option[fixlinebreak]',
+			'label'			=> __('Fix linebreak','easy-table'),
+			'type'			=> 'checkbox',
+			'value'			=> 1,
+			'description'	=> __('If terminator is not default (linebreak), you may encounter some issue with linebreak inside cell, try to check or uncheck this to resolve','easy-table'),
+			'attr'			=> $this->option('fixlinebreak') ? 'checked="checked"' : '')
 		,Array(
 			'name'			=> 'easy_table_plugin_option[csvfile]',
 			'label'			=> __('Allow read CSV from file?','easy-table'),
@@ -866,7 +993,7 @@ no,head1,head2,head3,head4
 [/table]	';
 $tableexample = $defaulttableexample;
 if(isset($_POST['test-easy-table'])){
-	$tableexample = $_POST['easy-table-test-area'];
+	$tableexample = strip_tags($_POST['easy-table-test-area'],'<p><a><img>');
 }
 
 if(isset($_POST['test-easy-table-reset'])){
@@ -889,12 +1016,14 @@ if(isset($_POST['test-easy-table-reset'])){
 <li><strong>tablesorter</strong>, <?php _e('default value','easy-table');?> <em>'false'</em></li>
 <li><strong>file</strong>, <?php _e('default value','easy-table');?> <em>'false'</em></li>
 <li><strong>sort</strong>, <?php _e('default value','easy-table');?> <em>''</em></li>
-<li class="new"><strong>trim</strong>, <?php _e('default value','easy-table');?> <em>false</em></li>
-<li class="new"><strong>style</strong>, <?php _e('default value','easy-table');?> <em>''</em></li>
-<li class="new"><strong>limit</strong>, <?php _e('default value','easy-table');?> <em>0</em></li>
-<li class="new"><strong>terminator</strong>, <?php _e('default value','easy-table');?> <em>\n</em></li>
-<li class="new"><strong>colalign</strong>, <?php _e('default value','easy-table');?> <em>''</em>, see example on the test area</li>
-<li class="new"><strong>colwidth</strong>, <?php _e('default value','easy-table');?> <em>''</em>, see example on the test area</li>
+<li><strong>trim</strong>, <?php _e('default value','easy-table');?> <em>false</em></li>
+<li><strong>style</strong>, <?php _e('default value','easy-table');?> <em>''</em></li>
+<li><strong>limit</strong>, <?php _e('default value','easy-table');?> <em>0</em></li>
+<li><strong>terminator</strong>, <?php _e('default value','easy-table');?> <em>\n</em></li>
+<li><strong>colalign</strong>, <?php _e('default value','easy-table');?> <em>''</em>, see example on the test area</li>
+<li><strong>colwidth</strong>, <?php _e('default value','easy-table');?> <em>''</em>, see example on the test area</li>
+<li><strong>exclude_row</strong>, <?php _e('default value','easy-table');?> <em>''</em>, comma separated value, ex: exclude_row="1,3,5"</li>
+<li><strong>exclude_col</strong>, <?php _e('default value','easy-table');?> <em>''</em>, comma separated value, ex: exclude_col="1,3,5"</li>
 </ol>
 <h3><?php printf('Example usage of %s parameter','sort','easy-table');?></h3>
 <p><em>sort</em> <?php _e('parameter is for initial sorting order. Value for each column separated by comma. See example below:','easy-table');?></p>
@@ -957,84 +1086,9 @@ col4,col5,col6
 
 </div>
 <div class="clear"></div>
-<?php elseif($_GET['gettab'] == 'themes') : ?>
-	<h3><?php _e('Easy Table theme editor');?></h3>
-
-	<div class="row">
-		<div class="columns nine">
-			<textarea name="" id="easy-table-theme-editor"><?php echo esc_textarea($this->theme_content());?></textarea>
-			<input type="submit" class="button primary" value="Save"/>
-		</div>
-		<div class="columns three">
-			<ul>
-				<?php
-					foreach($this->themes() as $theme) {
-						echo '
-						<li><a href="#">'.$theme.'</a> 
-						<a href="options-general.php?page=easy-table&gettab=themes&edit='.$theme.'">edit</a>
-						<a href="&edit-theme=1&clone=1#">clone</a>
-						<a href="#">delete</a>
-						<a href="#">preview</a>
-						</li>';
-					}
-				?>
-			</ul>
-			<form action="">
-				New theme: <br/>
-				<input type="text" value="" placeholder="Theme name" name="themename"/>
-				<input type="submit" value="Create"/>
-			</form>
-		</div>
-	</div>
 
 <?php elseif($_GET['gettab'] == 'support') : ?>
-<p><?php _e('I have tried to make this plugin can be used as easy as possible and documentation as complete as possible. However it is also possible that you are still confused. Therefore feel free to ask. I would be happy to answer.','easy-table');?></p>
-<p><?php _e('You can use this discussion to get support, request feature or reporting bug.','easy-table');?></p>
-<p><a target="_blank" href="http://takien.com/plugins/easy-table"><?php _e('Before you ask something, make sure you have read documentation here!','easy-table');?></a></p>
-
-<div id="disqus_thread"></div>
-<script type="text/javascript">
-/* <![CDATA[ */
-    var disqus_url = 'http://takien.com/1126/easy-table-is-the-easiest-way-to-create-table-in-wordpress.php';
-    var disqus_identifier = '1126 http://takien.com/?p=1126';
-    var disqus_container_id = 'disqus_thread';
-    var disqus_domain = 'disqus.com';
-    var disqus_shortname = 'takien';
-    var disqus_title = "Easy Table is The Easiest Way to Create Table in WordPress";
-        var disqus_config = function () {
-        var config = this; 
-        config.callbacks.preData.push(function() {
-            // clear out the container (its filled for SEO/legacy purposes)
-            document.getElementById(disqus_container_id).innerHTML = '';
-        });
-                config.callbacks.onReady.push(function() {
-            // sync comments in the background so we don't block the page
-            DISQUS.request.get('?cf_action=sync_comments&post_id=1126');
-        });
-                    };
-    var facebookXdReceiverPath = 'http://takien.com/wp-content/plugins/disqus-comment-system/xd_receiver.htm';
-/* ]]> */
-</script>
-
-<script type="text/javascript">
-/* <![CDATA[ */
-    var DsqLocal = {
-        'trackbacks': [
-        ],
-        'trackback_url': "http:\/\/takien.com\/1126\/easy-table-is-the-easiest-way-to-create-table-in-wordpress.php\/trackback"    };
-/* ]]> */
-</script>
-
-<script type="text/javascript">
-/* <![CDATA[ */
-(function() {
-    var dsq = document.createElement('script'); dsq.type = 'text/javascript';
-    dsq.async = true;
-        dsq.src = 'http' + '://' + disqus_shortname + '.' + disqus_domain + '/embed.js?pname=wordpress&pver=2.72';
-    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-})();
-/* ]]> */
-</script>
+<p>To ask question, please visit this plugin support on WordPress.org</p>
 <?php elseif ($_GET['gettab'] == 'about') : ?>
 <?php
 require_once(ABSPATH.'wp-admin/includes/plugin-install.php');
@@ -1065,7 +1119,7 @@ $api = plugins_api('plugin_information', array('slug' => 'easy-table' ));
 		?>
 		</p>
 		<?php endif; ?>
-		
+
 		<ul>
 <?php if ( ! empty($api->version) ) : ?>
 			<li><strong><?php _e('Latest Version:','easy-table') ?></strong> <?php echo $api->version ?></li>
@@ -1103,10 +1157,10 @@ $api = plugins_api('plugin_information', array('slug' => 'easy-table' ));
 			<?php } ?>
 		</div>
 		<small><?php printf(_n('(based on %s rating)', '(based on %s ratings)', $api->num_ratings), number_format_i18n($api->num_ratings)); ?></small>
-		
-		
+
+
 		<h3><?php _e('Support my work with donation','easy-table');?>:</h3>
-		
+
 		<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
 <input type="hidden" name="cmd" value="_s-xclick">
 <input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----MIIHdwYJKoZIhvcNAQcEoIIHaDCCB2QCAQExggEwMIIBLAIBADCBlDCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb20CAQAwDQYJKoZIhvcNAQEBBQAEgYBiuJYBc1lBF7rbfQavcpZgzT8RvZGjID2Js94j7ju/SRNVtn+UPciq7Bi5fEWsM9WwVx52bndEV+WvBdQe3t2bV3EAXY8I3J2bAWczePAlZEcLy0umSnQGnRPIAZ9mk/JUKRAJmvd43rBkNqjzlhNXTSprXT0n2Vyqmq76WG6hJjELMAkGBSsOAwIaBQAwgfQGCSqGSIb3DQEHATAUBggqhkiG9w0DBwQIC8jF6f82My+AgdAjf0SuFu46mt7lttlZYr5Z5U2CJIFyi51ihjPnZsxpoL0ekeLCAP8tFmo2cQM5ne/qx9oE9lE5Jfnxl+uoK1F2HOlxKl+x+jv7dsuMHUCJpULyq8/UsrJ3FXr8bZNAfKhJwtyswKpEiSyhBndkVj9vbeoH0V1+EoRmsyCcKs2qZKnVQQ/saz86aftIMYJ2r4yMBt10U8SUHC4Eq1JMWvAPNAPLoR6JQSYcF5z1HjhOHtnoFgfSOfP32CojuP9sRBOPUfvS20k9GWMxKEiD0u9RoIIDhzCCA4MwggLsoAMCAQICAQAwDQYJKoZIhvcNAQEFBQAwgY4xCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEUMBIGA1UEChMLUGF5UGFsIEluYy4xEzARBgNVBAsUCmxpdmVfY2VydHMxETAPBgNVBAMUCGxpdmVfYXBpMRwwGgYJKoZIhvcNAQkBFg1yZUBwYXlwYWwuY29tMB4XDTA0MDIxMzEwMTMxNVoXDTM1MDIxMzEwMTMxNVowgY4xCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEUMBIGA1UEChMLUGF5UGFsIEluYy4xEzARBgNVBAsUCmxpdmVfY2VydHMxETAPBgNVBAMUCGxpdmVfYXBpMRwwGgYJKoZIhvcNAQkBFg1yZUBwYXlwYWwuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDBR07d/ETMS1ycjtkpkvjXZe9k+6CieLuLsPumsJ7QC1odNz3sJiCbs2wC0nLE0uLGaEtXynIgRqIddYCHx88pb5HTXv4SZeuv0Rqq4+axW9PLAAATU8w04qqjaSXgbGLP3NmohqM6bV9kZZwZLR/klDaQGo1u9uDb9lr4Yn+rBQIDAQABo4HuMIHrMB0GA1UdDgQWBBSWn3y7xm8XvVk/UtcKG+wQ1mSUazCBuwYDVR0jBIGzMIGwgBSWn3y7xm8XvVk/UtcKG+wQ1mSUa6GBlKSBkTCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb22CAQAwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOBgQCBXzpWmoBa5e9fo6ujionW1hUhPkOBakTr3YCDjbYfvJEiv/2P+IobhOGJr85+XHhN0v4gUkEDI8r2/rNk1m0GA8HKddvTjyGw/XqXa+LSTlDYkqI8OwR8GEYj4efEtcRpRYBxV8KxAW93YDWzFGvruKnnLbDAF6VR5w/cCMn5hzGCAZowggGWAgEBMIGUMIGOMQswCQYDVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDU1vdW50YWluIFZpZXcxFDASBgNVBAoTC1BheVBhbCBJbmMuMRMwEQYDVQQLFApsaXZlX2NlcnRzMREwDwYDVQQDFAhsaXZlX2FwaTEcMBoGCSqGSIb3DQEJARYNcmVAcGF5cGFsLmNvbQIBADAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMTIwNzAxMDM0ODUwWjAjBgkqhkiG9w0BCQQxFgQU7GSbNXKovs7xPIkMognrn2q5DgwwDQYJKoZIhvcNAQEBBQAEgYB+x+XRIPErAHovudsWOwNV/9LJWlBTkRTfR1zNnO1I4pYrzAJ6MR4I0vsmvZSmvwIfcyNPLxc3ouRK2esTFVfKv/ICHYrTCXSGusyROWOlQRiQJvoQ65IUiW6HvBz81/JjRp5TNgAAbgEY9GlddvdVsjsVbqfroqI2GIvdTNY+6w==-----END PKCS7-----
@@ -1114,11 +1168,11 @@ $api = plugins_api('plugin_information', array('slug' => 'easy-table' ));
 <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
 <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
 </form>
-<p><?php _e('Don\'t have money? No problem, you can rate my plugin instead.','easy-table');?> 
+<p><?php _e('Don\'t have money? No problem, you can rate my plugin instead.','easy-table');?>
 <a target="_blank" href="http://wordpress.org/extend/plugins/easy-table/"><?php _e('Click here to rate','easy-table');?></a></p>
 
 <h3><?php _e('Thanks to','easy-table');?>:</h3>
-		
+
 <ul>
 <li><a target="_blank" href="<?php echo site_url();?>">You</a></li>
 <li><a target="_blank" href="http://php.net">PHP</a></li>
@@ -1127,6 +1181,7 @@ $api = plugins_api('plugin_information', array('slug' => 'easy-table' ));
 <li>CSS <?php _e('by','easy-table');?> <a target="_blank" href="http://twitter.github.com/bootstrap">Twitter Bootstrap</a></li>
 <li>jQuery metadata <?php _e('by','easy-table');?> <a target="_blank" href="https://github.com/jquery/jquery-metadata/">John Resig</a></li>
 <li>CuscoSky table styles <?php _e('by','easy-table');?> <a target="_blank" href="http://www.buayacorp.com">Braulio Soncco</a></li>
+<li>Tablesorter updated version <?php _e('by','easy-table');?> <a target="_blank" href="https://github.com/Mottie/tablesorter">Rob Garrison</a></li>
 
 </ul>
 		<?php endif; ?>
@@ -1136,7 +1191,7 @@ $api = plugins_api('plugin_information', array('slug' => 'easy-table' ));
 
 <?php
 	}
-			
+
 } /* end class */
 }
 add_action('init', 'easy_table_init');
@@ -1150,11 +1205,11 @@ function easy_table_init() {
 * Create function str_getcsv if not exists in server
 * @since version 0.2
 * Use dedicated str_getcsv since 1.1
-*/	
+*/
 if (!function_exists('easy_table_str_getcsv')) {
-	function easy_table_str_getcsv($input, $delimiter = ",", $enclosure = '"', $escape = "\\"){
-		
-		/** 
+	function easy_table_str_getcsv($input, $delimiter = ",", $enclosure = '"', $escape = '\\'){
+
+		/**
 		* Bug fix, custom terminator wont work
 		* @since version 1.1.1
 		*/
@@ -1164,24 +1219,27 @@ if (!function_exists('easy_table_str_getcsv')) {
 			$input = str_replace("\n",'NLINEBREAK',$input);
 			$input = str_replace("\r",'RLINEBREAK',$input);
 		}
+		$input = str_ireplace( $escape.$delimiter,'_ESCAPED_SEPATATOR_',$input );
+
 		$fiveMBs = 5 * 1024 * 1024;
 		if (($handle = fopen("php://temp/maxmemory:$fiveMBs", 'r+')) !== FALSE) {
 		fputs($handle, $input);
 		rewind($handle);
 		$line = -1;
 		$return = Array();
-		/* add dynamic row limit, 
+		/* add dynamic row limit,
 		* @since: 1.0
 		*/
-		
+
 		$option = get_option('easy_table_plugin_option');
-		$limit  = !empty($option['limit']) ? (int)$option['limit'] : 2000;
-		while (($data = @fgetcsv($handle, $limit, $delimiter, $enclosure)) !== FALSE) {
+		$limit  = !empty($option['limit']) ? (int)$option['limit'] : 2000000;
+		while (($data = @fgetcsv( $handle, $limit, $delimiter, $enclosure )) !== FALSE) {
 			$num = count($data);
 			for ($c=0; $c < $num; $c++) {
 				$line++;
 				$data[$c] = str_replace('NLINEBREAK',"\n",$data[$c]);
 				$data[$c] = str_replace('RLINEBREAK',"\r",$data[$c]);
+				$data[$c] = str_replace('_ESCAPED_SEPATATOR_',$delimiter,$data[$c]);
 				$return[$line] = $data[$c];
 			}
 		}
@@ -1192,7 +1250,7 @@ if (!function_exists('easy_table_str_getcsv')) {
 }
 if(!function_exists('array_replace')) {
 	function array_replace(){
-		$array=array();   
+		$array=array();
 		$n=func_num_args();
 		while ($n-- >0) {
 			$array+=func_get_arg($n);
