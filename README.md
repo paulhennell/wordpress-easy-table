@@ -1,4 +1,5 @@
-### Easy Table is WordPress plugin to create a table in post, page, or widget in easy way using CSV format and table short tags. This version is an updated 'drop in' replacement for the original Easy Table by Takien, edited to work on php8.0.
+### Easy Table is WordPress plugin to create a table in post, page, or widget in easy way using CSV format and table short tags. 
+This version is an updated 'drop in' replacement for the original Easy Table by Takien, edited to work on php8.0.
 
 
 ## Features
@@ -16,7 +17,9 @@
 
 ## Installation
 
-You can download a zip from github and  upload using WordPress plugin uploader or upload manually uncompressed plugin file using FTP.
+Download the master branch zip from github [here](https://github.com/paulhennell/wordpress-easy-table/archive/refs/heads/master.zip) and upload to WordPress plugin screen. If you have the old version of easy table, deactive and delete it, do not run both plugins.
+
+If you use the [wordpress git updater plugin](https://git-updater.com/) you will be able to automaticly update the plugin.
 
 
 ## Example usage
