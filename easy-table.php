@@ -64,7 +64,7 @@ function __construct(){
 	$plugin = plugin_basename(__FILE__);
 	add_filter("plugin_action_links_$plugin",  array(&$this,'easy_table_settings_link' ));
 
-	load_plugin_textdomain('easy-table', false, basename( dirname( __FILE__ ) ) . '/languages' );
+	load_plugin_textdomain('easy-table', false, basename( __DIR__ ) . '/languages' );
 
 	add_action('admin_init', 		 array(&$this,'easy_table_register_setting'));
 	add_action('admin_head',		 array(&$this,'easy_table_admin_script'));
@@ -74,7 +74,7 @@ function __construct(){
 //	add_action('contextual_help', 	 array(&$this,'easy_table_help'));
 
 	include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-	include_once( dirname(__FILE__) . '/inc/compatibility.php' ); /* since 1.5.2 */
+	include_once( __DIR__ . '/inc/compatibility.php' ); /* since 1.5.2 */
 
 	$conflict = false;
 
@@ -222,10 +222,12 @@ private function csv_to_table($data,$args){
 		*/
 		if( is_wp_error( $response ) ) {
 		   return '<div style="color:red">Error reading file/URL.</div>';
-		} else if( $response['response']['code'] == 200 ) {
-			$data = $response['body'];
 		}
-	}
+
+        if( $response['response']['code'] == 200 ) {
+            $data = $response['body'];
+        }
+    }
 
 	if(!is_array($data)){
 		/**
@@ -238,7 +240,7 @@ private function csv_to_table($data,$args){
 		Fix encoding?
 		@since: 1.0 beta
 		*/
-		require_once (dirname(__FILE__).'/inc/Encoding.php');
+		require_once ( __DIR__ . '/inc/Encoding.php');
 		//$data = ForceEncode::fixUTF8($data);
 		$data = ForceEncode::toUTF8($data);
 
@@ -375,7 +377,7 @@ ai head, text to shown in the table head row, default is No.
 		$indexnum    = ((int)$index[0])+$r;
 		$indexnum    = $th ? $indexnum-2 : $indexnum-1;
 		$indexnum    = ($tf AND ($tf !== 'last')) ? $indexnum-1 : $indexnum;
-		$indexhead   = isset($index[1]) ? $index[1] : 'No.';
+		$indexhead   = $index[1] ?? 'No.';
 		$indexwidth  = isset($index[2]) ? (int)$index[2] : 30;
 		$output .= ($ai AND ($thtd == 'td'))  ? '<'.$thtd.' style="width:'.$indexwidth.'px">'.$indexnum."</$thtd>" : ($ai ? "<$thtd>".$indexhead."</$thtd>" : '');
 
@@ -386,7 +388,7 @@ ai head, text to shown in the table head row, default is No.
 			*/
 			//preg_match('/\['.$this->option('attrtag').' ([^\\]\\/]*(?:\\/(?!\\])[^\\]\\/]*)*?)/',$cell,$matchattr);
 			preg_match('/\['.$this->option('attrtag').' ([^\\]]*)/',$cell,$matchattr);
-			$attr = isset($matchattr[1]) ? $matchattr[1] : '';
+			$attr = $matchattr[1] ?? '';
 				/**
 				* extract $attr value
 				* @since 0.8
@@ -398,13 +400,13 @@ ai head, text to shown in the table head row, default is No.
 
 				if( ('th' == $thtd) AND $tablesorter ) {
 					$attrs = $attr ? shortcode_parse_atts($attr) : Array();
-					$attrs['sort']  =  isset($attrs['sort']) ? $attrs['sort'] : $header_sort[$c];
-					$attrs['class'] =  isset($attrs['class']) ? $attrs['class'] : '';
+					$attrs['sort']  = $attrs['sort'] ?? $header_sort[ $c ];
+					$attrs['class'] = $attrs['class'] ?? '';
 
 					$inline_sort[$c] = $attrs['sort'];
 
 					$attr = '';
-					$sorter = in_array(strtolower($attrs['sort']),array('desc','asc')) ? '' : (!empty($attrs['sort']) ? 'false' : '');
+					$sorter = in_array(strtolower($attrs['sort'] ?? 'none'),array('desc','asc')) ? '' : (!empty($attrs['sort']) ? 'false' : '');
 					foreach($attrs as $katr => $vatr){
 						if($katr == 'sort') {
 						}
@@ -529,7 +531,7 @@ return $r;
 * Retrieve options from database if any, or use default options instead.
 */
 function option($key=''){
-	$option = get_option('easy_table_plugin_option') ? get_option('easy_table_plugin_option') : Array();
+	$option = get_option( 'easy_table_plugin_option' ) ?: array();
 	$option = array_merge($this->settings,$option);
 	if($key){
 		$return = $option[$key];
@@ -595,8 +597,8 @@ function easy_table_sanitize_callback ( $value ) {
 function render_form($fields){
 	$output ='<table class="form-table">';
 	foreach($fields as $field){
-		$field['rowclass'] = isset($field['rowclass']) ? $field['rowclass'] : false;
-		$field['label'] = isset($field['label']) ? $field['label'] : '';
+		$field['rowclass'] = $field['rowclass'] ?? false;
+		$field['label'] = $field['label'] ?? '';
 
 		if($field['type']=='text'){
 			$output .= '<tr '.($field['rowclass'] ? 'class="'.$field['rowclass'].'"': '').'><th><label for="'.$field['name'].'">'.$field['label'].'</label></th>';
@@ -666,7 +668,7 @@ function easy_table_style() {
 }
 
 function easy_table_admin_script(){
-$page = isset($_GET['page']) ? $_GET['page'] : '';
+$page = $_GET['page'] ?? '';
 if($page == $this->easy_table_base('plugin-domain')) {
 if($this->option('tablesorter')) { ?>
 <script src="<?php echo plugins_url( 'js/easy-table-script.js' , __FILE__);?>"></script>
@@ -713,7 +715,7 @@ function easy_table_settings_link($links) {
 * Contextual help
 */
 function easy_table_help($help) {
-	$page = isset($_GET['page']) ? $_GET['page'] : '';
+	$page = $_GET['page'] ?? '';
 	if($page == $this->easy_table_base('plugin-domain')) {
 		$help = '<h2>'.$this->easy_table_base('name').' '.$this->easy_table_base('version').'</h2>';
 		$help .= '<h5>'.__('Instruction','easy-table').':</h5>
@@ -1025,7 +1027,7 @@ if(isset($_POST['test-easy-table-reset'])){
 <li><strong>exclude_row</strong>, <?php _e('default value','easy-table');?> <em>''</em>, comma separated value, ex: exclude_row="1,3,5"</li>
 <li><strong>exclude_col</strong>, <?php _e('default value','easy-table');?> <em>''</em>, comma separated value, ex: exclude_col="1,3,5"</li>
 </ol>
-<h3><?php printf('Example usage of %s parameter','sort','easy-table');?></h3>
+<h3><?php sprintf('Example usage of %s parameter',['sort','easy-table']);?></h3>
 <p><em>sort</em> <?php _e('parameter is for initial sorting order. Value for each column separated by comma. See example below:','easy-table');?></p>
 <ol>
 <li><?php _e('Set initial order of first column descending and second column ascending:','easy-table');?>
@@ -1062,7 +1064,7 @@ col1,col2[attr sort="desc"],col3
 col4,col5,col6
 [/table]
 </code></pre>
-<p><?php printf('To disable sort, use "%s". In the example below first column is not sortable','false','easy-table');?> </p>
+<p><?php sprintf('To disable sort, use "%s". In the example below first column is not sortable',['false','easy-table']);?> </p>
 
 <pre><code>[table]
 col1[attr sort="false"],col2,col3
@@ -1135,7 +1137,7 @@ $api = plugins_api('plugin_information', array('slug' => 'easy-table' ));
 <?php endif; if ( ! empty($api->downloaded) ) : ?>
 			<li><strong><?php _e('Downloaded:') ?></strong> <?php printf(_n('%s time', '%s times', $api->downloaded), number_format_i18n($api->downloaded)) ?></li>
 <?php endif; if ( ! empty($api->slug) && empty($api->external) ) : ?>
-			<li><a target="_blank" href="http://wordpress.org/extend/plugins/<?php echo $api->slug ?>/"><?php _e('WordPress.org Plugin Page &#187;') ?></a></li>
+			<li><a target="_blank" href="https://wordpress.org/extend/plugins/<?php echo $api->slug ?>/"><?php _e('WordPress.org Plugin Page &#187;') ?></a></li>
 <?php endif; if ( ! empty($api->homepage) ) : ?>
 			<li><a target="_blank" href="<?php echo $api->homepage ?>"><?php _e('Plugin Homepage  &#187;') ?></a></li>
 <?php endif; ?>
@@ -1165,22 +1167,22 @@ $api = plugins_api('plugin_information', array('slug' => 'easy-table' ));
 <input type="hidden" name="cmd" value="_s-xclick">
 <input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
 ">
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" name="submit" alt="PayPal - The safer, easier way to pay online!">
+<img alt="" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
 </form>
 <p><?php _e('Don\'t have money? No problem, you can rate my plugin instead.','easy-table');?>
-<a target="_blank" href="http://wordpress.org/extend/plugins/easy-table/"><?php _e('Click here to rate','easy-table');?></a></p>
+<a target="_blank" href="https://wordpress.org/extend/plugins/easy-table/"><?php _e('Click here to rate','easy-table');?></a></p>
 
 <h3><?php _e('Thanks to','easy-table');?>:</h3>
 
 <ul>
 <li><a target="_blank" href="<?php echo site_url();?>">You</a></li>
-<li><a target="_blank" href="http://php.net">PHP</a></li>
-<li><a target="_blank" href="http://wordpress.org">WordPress</a></li>
-<li>Tablesorter <?php _e('by','easy-table');?> <a target="_blank" href="http://tablesorter.com">Christian Bach</a></li>
-<li>CSS <?php _e('by','easy-table');?> <a target="_blank" href="http://twitter.github.com/bootstrap">Twitter Bootstrap</a></li>
+<li><a target="_blank" href="https://php.net">PHP</a></li>
+<li><a target="_blank" href="https://wordpress.org">WordPress</a></li>
+<li>Tablesorter <?php _e('by','easy-table');?> <a target="_blank" href="https://tablesorter.com">Christian Bach</a></li>
+<li>CSS <?php _e('by','easy-table');?> <a target="_blank" href="https://twitter.github.com/bootstrap">Twitter Bootstrap</a></li>
 <li>jQuery metadata <?php _e('by','easy-table');?> <a target="_blank" href="https://github.com/jquery/jquery-metadata/">John Resig</a></li>
-<li>CuscoSky table styles <?php _e('by','easy-table');?> <a target="_blank" href="http://www.buayacorp.com">Braulio Soncco</a></li>
+<li>CuscoSky table styles <?php _e('by','easy-table');?> <a target="_blank" href="https://www.buayacorp.com">Braulio Soncco</a></li>
 <li>Tablesorter updated version <?php _e('by','easy-table');?> <a target="_blank" href="https://github.com/Mottie/tablesorter">Rob Garrison</a></li>
 
 </ul>
@@ -1222,8 +1224,8 @@ if (!function_exists('easy_table_str_getcsv')) {
 		$input = str_ireplace( $escape.$delimiter,'_ESCAPED_SEPATATOR_',$input );
 
 		$fiveMBs = 5 * 1024 * 1024;
-		if (($handle = fopen("php://temp/maxmemory:$fiveMBs", 'r+')) !== FALSE) {
-		fputs($handle, $input);
+		if ( ($handle = fopen("php://temp/maxmemory:$fiveMBs", 'rb+' )) !== FALSE) {
+		fwrite($handle, $input);
 		rewind($handle);
 		$line = -1;
 		$return = Array();
